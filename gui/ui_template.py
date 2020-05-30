@@ -62,8 +62,10 @@ from design_type.connection.seated_angle_connection import SeatedAngleConnection
 from design_type.connection.end_plate_connection import EndPlateConnection
 from design_type.connection.end_plate_connection import EndPlateConnection
 from design_type.connection.beam_cover_plate import BeamCoverPlate
+from design_type.connection.beam_cover_plate_weld import BeamCoverPlateWeld
 from design_type.connection.beam_end_plate import BeamEndPlate
 from design_type.connection.column_end_plate import ColumnEndPlate
+from design_type.connection.column_cover_plate_weld import ColumnCoverPlateWeld
 from design_type.connection.base_plate_connection import BasePlateConnection
 from design_type.tension_member.tension_bolted import Tension_bolted
 from design_type.tension_member.tension_welded import Tension_welded
@@ -188,6 +190,7 @@ class Ui_ModuleWindow(QMainWindow):
         self.design_inputs = {}
         self.prev_inputs = {}
         self.input_dock_inputs = {}
+        self.design_pref_inputs = {}
         self.folder = folder
         main.design_status = False
         MainWindow.setObjectName("MainWindow")
@@ -478,7 +481,7 @@ class Ui_ModuleWindow(QMainWindow):
                 combo.setStyleSheet("QComboBox { combobox-popup: 0; }")
                 combo.setMaxVisibleItems(5)
                 combo.setObjectName(option[0])
-                for item in option[4]:
+                for item in option[3]:
                     combo.addItem(item)
                 #combo.setFixedSize(combo.size())
                 width = combo.minimumSizeHint().width()
@@ -505,11 +508,13 @@ class Ui_ModuleWindow(QMainWindow):
                 #     r.setGeometry(QtCore.QRect(160, 10 + i, 150, 27))
                 #     r.setDisabled(True)
                 # else:
-                #r.setGeometry(QtCore.QRect(150, 10 + i, 150, 27))
-                r.setEnabled(True if option[5] else False)
-                if option[6] != 'No Validator':
-                    r.setValidator(self.get_validator(option[6]))
-                #r.setFixedSize(r.size())
+
+                r.setGeometry(QtCore.QRect(150, 10 + i, 150, 27))
+                r.setEnabled(True if option[4] else False)
+                if option[5] != 'No Validator':
+                    r.setValidator(self.get_validator(option[5]))
+                r.setFixedSize(r.size())
+
                 in_layout2.addWidget(r, j, 2, 1, 1)
                 #maxi_width_right = max(maxi_width_right, 120)
 
@@ -531,7 +536,7 @@ class Ui_ModuleWindow(QMainWindow):
                 l.setAlignment(Qt.AlignHCenter)
                 l.setObjectName(option[0] + "_note")
                 # l.setText(_translate("MainWindow", "<html><head/><body><p>" + option[4] + "</p></body></html>"))
-                l.setText(option[4])
+                l.setText(option[3])
                 l.setReadOnly(True)
                 l.setFixedSize(l.size())
                 in_layout2.addWidget(l, j, 2, 1, 1)
@@ -541,7 +546,7 @@ class Ui_ModuleWindow(QMainWindow):
                 im.setGeometry(QtCore.QRect(190, 10 + i, 70, 57))
                 im.setObjectName(option[0])
                 im.setScaledContents(True)
-                pixmap = QPixmap(option[4])
+                pixmap = QPixmap(option[3])
                 im.setPixmap(pixmap)
                 i = i + 30
                 im.setFixedSize(im.size())
@@ -552,7 +557,7 @@ class Ui_ModuleWindow(QMainWindow):
                 imc.setGeometry(QtCore.QRect(130, 10 + i, 160, 150))
                 imc.setObjectName(option[0])
                 imc.setScaledContents(True)
-                pixmapc = QPixmap(option[4])
+                pixmapc = QPixmap(option[3])
                 imc.setPixmap(pixmapc)
                 i = i + 30
                 imc.setFixedSize(imc.size())
@@ -594,11 +599,11 @@ class Ui_ModuleWindow(QMainWindow):
 
             if option[0] in RED_LIST:
                 red_list_set = set(red_list_function())
-                current_list_set = set(option[4])
+                current_list_set = set(option[3])
                 current_red_list = list(current_list_set.intersection(red_list_set))
 
                 for value in current_red_list:
-                    indx = option[4].index(str(value))
+                    indx = option[3].index(str(value))
                     key.setItemData(indx, QBrush(QColor("red")), Qt.TextColorRole)
     # Customized option in Combobox
     ###############################
@@ -1524,6 +1529,9 @@ class Ui_ModuleWindow(QMainWindow):
             design_dictionary.update(d1)
             self.input_dock_inputs.update(d1)
 
+        for design_pref_key in self.design_pref_inputs.keys():
+            if design_pref_key not in self.input_dock_inputs.keys():
+                self.input_dock_inputs.update({design_pref_key: self.design_pref_inputs[design_pref_key]})
         if self.designPrefDialog.flag:
             print('flag true')
 
@@ -1642,6 +1650,9 @@ class Ui_ModuleWindow(QMainWindow):
                         val = main.get_values_for_design_pref(main, key_name, design_dictionary)
                         design_dictionary.update({key_name: val})
 
+            for dp_key in self.design_pref_inputs.keys():
+                design_dictionary[dp_key] = self.design_pref_inputs[dp_key]
+
         self.design_inputs = design_dictionary
 
             # common_material = self.dockWidgetContents.findChild(QtWidgets.QWidget, KEY_MATERIAL).currentText()
@@ -1726,12 +1737,12 @@ class Ui_ModuleWindow(QMainWindow):
             return SeatedAngleConnection
         elif name == KEY_DISP_COLUMNCOVERPLATE:
             return ColumnCoverPlate
-        # elif name == KEY_DISP_COLUMNCOVERPLATEWELD:
-        #     return ColumnCoverPlateWeld
+        elif name == KEY_DISP_COLUMNCOVERPLATEWELD:
+            return ColumnCoverPlateWeld
         elif name == KEY_DISP_BEAMCOVERPLATE:
             return BeamCoverPlate
-        # elif name == KEY_DISP_BEAMCOVERPLATEWELD:
-        #     return BeamCoverPlateWeld
+        elif name == KEY_DISP_BEAMCOVERPLATEWELD:
+            return BeamCoverPlateWeld
         elif name == KEY_DISP_BEAMENDPLATE:
             return BeamEndPlate
         elif name == KEY_DISP_COLUMNENDPLATE:
@@ -1780,6 +1791,11 @@ class Ui_ModuleWindow(QMainWindow):
     '''
 
     def setDictToUserInputs(self, uiObj, op_list, data, new):
+
+        for uiObj_key in uiObj.keys():
+            print(uiObj_key)
+            self.design_pref_inputs.update({uiObj_key: uiObj[uiObj_key]})
+
         for op in op_list:
             key_str = op[0]
             key = self.dockWidgetContents.findChild(QtWidgets.QWidget, key_str)
@@ -1888,7 +1904,7 @@ class Ui_ModuleWindow(QMainWindow):
                     txt = self.dockWidgetContents_out.findChild(QtWidgets.QWidget, option[0])
                     txt.setText(str(option[3]))
                     # txt.setVisible(True if option[3] else False)
-                    txt_label = self.dockWidgetContents_out.findChild(QtWidgets.QWidget, option[0]+"_label")
+                    # txt_label = self.dockWidgetContents_out.findChild(QtWidgets.QWidget, option[0]+"_label")
                     # txt_label.setVisible(True if option[3] else False)
 
                 elif option[2] == TYPE_OUT_BUTTON:
@@ -1908,9 +1924,11 @@ class Ui_ModuleWindow(QMainWindow):
             elif self.design_inputs[KEY_MODULE] == KEY_DISP_ENDPLATE:
                 module_class = EndPlateConnection
 
-            if status is True and main.module in [KEY_DISP_FINPLATE, KEY_DISP_BEAMCOVERPLATE, KEY_DISP_CLEATANGLE,
+            if status is True and main.module in [KEY_DISP_FINPLATE, KEY_DISP_BEAMCOVERPLATE,
+                                                  KEY_DISP_BEAMCOVERPLATEWELD, KEY_DISP_CLEATANGLE,
                                                   KEY_DISP_ENDPLATE, KEY_DISP_BASE_PLATE, KEY_DISP_SEATED_ANGLE,
-                                                  KEY_DISP_TENSION_BOLTED, KEY_DISP_TENSION_WELDED]:
+                                                  KEY_DISP_TENSION_BOLTED, KEY_DISP_TENSION_WELDED,
+                                                  KEY_DISP_COLUMNCOVERPLATEWELD]:
                 self.commLogicObj = CommonDesignLogic(self.display, self.folder, main.module, main.mainmodule)
                 status = main.design_status
                 module_class = self.return_class(main.module)
@@ -2404,6 +2422,7 @@ class Ui_ModuleWindow(QMainWindow):
 # Function for showing design-preferences popup
 
     def design_preferences(self):
+        print(self.designPrefDialog.module_window.input_dock_inputs)
         self.designPrefDialog.exec()
 
     # Function for getting input for design preferences from input dock
